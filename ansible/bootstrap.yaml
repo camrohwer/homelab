@@ -1,0 +1,53 @@
+- hosts: all
+  become: true
+
+  tasks:
+    - name: Update pkgs
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Disable swap
+      shell: swapoff -a
+
+    - name: Remove swap from fstab
+      replace: 
+        path: /etc/fstab
+        regexp: '^([^#].*swap.*)$'
+        replace: '# \1'
+
+- hosts: masters
+  become: true
+
+  tasks:
+    - name: Install k3s server
+      shell: |
+        curl -sfL https://get.k3s.io | \
+        sh -s - server \
+        --write-kubeconfig-mode 644
+
+    - name: Wait for k3s
+      wait_for:
+        port: 6443
+
+- hosts: masters
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Read k3s node token into memory
+      ansible.builtin.slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_token
+
+- hosts: workers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Install k3s agent
+      shell: |
+        curl -sfL https://get.k3s.io | \
+        K3S_URL=https://{{ hostvars['k3s-master']['ansible_host'] }}:6443 \
+        K3S_TOKEN={{ hostvars['k3s-master']['k3s_token'].content | b64decode | trim }} \
+        sh -

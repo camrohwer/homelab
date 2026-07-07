@@ -1,0 +1,32 @@
+---
+- name: Configure kubectl on local machine
+  hosts: masters
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Fetch kubeconfig
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig_raw
+
+- name: Install kubeconfig locally
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    kubeconfig_path: "{{ lookup('env', 'HOME') }}/.kube/config"
+
+  tasks:
+    - name: Ensure ~/.kube exists
+      ansible.builtin.file:
+        path: "{{ lookup('env', 'HOME') }}/.kube"
+        state: directory
+        mode: "0700"
+
+    - name: Install kubeconfig
+      ansible.builtin.copy:
+        content: "{{ hostvars[groups['masters'][0]].kubeconfig_raw.content | b64decode | replace('https://127.0.0.1:6443', 'https://' + hostvars[groups['masters'][0]].ansible_host + ':6443') }}"
+        dest: "{{ kubeconfig_path }}"
+        mode: "0600"

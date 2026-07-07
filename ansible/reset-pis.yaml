@@ -1,0 +1,69 @@
+- name: HARD RESET k3s nodes
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+
+    - name: Stop k3s server if running
+      systemd:
+        name: k3s
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop k3s agent if running
+      systemd:
+        name: k3s-agent
+        state: stopped
+      ignore_errors: yes
+
+    - name: Run k3s uninstall script (server)
+      shell: |
+        if [ -f /usr/local/bin/k3s-uninstall.sh ]; then
+          /usr/local/bin/k3s-uninstall.sh
+        fi
+      ignore_errors: yes
+
+    - name: Run k3s agent uninstall script
+      shell: |
+        if [ -f /usr/local/bin/k3s-agent-uninstall.sh ]; then
+          /usr/local/bin/k3s-agent-uninstall.sh
+        fi
+      ignore_errors: yes
+
+    - name: Remove k3s directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/rancher
+        - /var/lib/rancher
+        - /var/lib/kubelet
+        - /var/lib/cni
+        - /etc/cni
+        - /opt/cni
+        - /run/k3s
+
+    - name: Remove leftover k3s binaries
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /usr/local/bin/k3s
+        - /usr/local/bin/k3s-agent
+        - /usr/local/bin/kubectl
+
+    - name: Flush iptables (clean networking state)
+      shell: iptables -F
+      ignore_errors: yes
+
+    - name: Remove all containers (if containerd tools exist)
+      shell: |
+        if command -v crictl >/dev/null 2>&1; then
+          crictl rm -f $(crictl ps -aq) || true
+        fi
+      ignore_errors: yes
+
+    - name: Reboot node
+      reboot:
+        reboot_timeout: 600
