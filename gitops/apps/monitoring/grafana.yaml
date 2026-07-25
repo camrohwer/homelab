@@ -48,6 +48,13 @@ spec:
               revision: 45
               datasource: Prometheus
 
+        dashboards:
+          default:
+            kubernetes-cluster:
+              gnetId: 15661
+              revision: 2
+              datasource: Prometheus
+
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
