@@ -16,7 +16,7 @@ This homelab in the long term will house experiments and configurations for:
 - Networking, ingress, and service discovery.
 - Monitoring and observability
 - Configuration management and automation workflows
-- GitHub Actions CI
+- **GitHub Actions** CI
 
 ## Repository Goals
 
@@ -29,6 +29,7 @@ This homelab in the long term will house experiments and configurations for:
 ## Tech Stack
 
 | Component | Purpose |
+| --------- | ---------------------------------- |
 | k3s | Lightweight Kubernetes Cluster |
 | Ansible | Host provisioning and automation |
 | Helm | Kubernetes application management |
