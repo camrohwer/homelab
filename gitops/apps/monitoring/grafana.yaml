@@ -49,8 +49,8 @@ spec:
               datasource: Prometheus
 
             kubernetes-cluster:
-              gnetId: 15661
-              revision: 2
+              gnetId: 315
+              revision: 3
               datasource: Prometheus
 
   destination:
