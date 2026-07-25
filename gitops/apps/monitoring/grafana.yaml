@@ -1,3 +1,4 @@
+---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 
@@ -16,7 +17,7 @@ spec:
     helm:
       releaseName: grafana
 
-      values : |
+      values: |
         datasources:
           datasources.yaml:
             apiVersion: 1
