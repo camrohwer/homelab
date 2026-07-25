@@ -1,0 +1,38 @@
+---
+- name: Install Argo CD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  tasks:
+
+    - name: Create argocd namespace
+      kubernetes.core.k8s:
+        name: argocd
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Install Argo CD
+      kubernetes.core.k8s:
+        src: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+        namespace: argocd
+        state: present
+
+    - name: Wait for Argo CD server
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: argocd
+        name: argocd-server
+      register: argocd_server
+      until:
+        - argocd_server.resources | length > 0
+        - argocd_server.resources[0].status.availableReplicas is defined
+      retries: 30
+      delay: 10
+
+    - name: Apply Argo root application
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../gitops/bootstrap/homelab.yaml"

@@ -15,6 +15,16 @@ ansible-playbook -i inventory.yaml bootstrap.yaml
 ansible-playbook -i inventory.yaml configure-kubectl.yaml
 ```
 
+## 3. Install ArgoCD
+```bash
+ansible-playbook -i inventory.yaml install-argocd.yaml
+```
+
+## Run full bootstrap
+```bash
+ansible-playbook -i inventory.yaml site.yaml
+```
+
 ## Hard Reset
 ```bash
 ansible-playbook -i inventory.yaml reset-pis.yaml

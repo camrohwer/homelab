@@ -1,0 +1,6 @@
+---
+- import_playbook: bootstrap.yaml
+
+- import_playbook: configure-kubectl.yaml
+
+- import_playbook: install-argocd.yaml
