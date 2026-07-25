@@ -3,7 +3,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: prometheus
+  name: node-exporter
   namespace: argocd
 
 spec:
@@ -11,11 +11,11 @@ spec:
 
   source:
     repoURL: https://prometheus-community.github.io/helm-charts
-    chart: prometheus
-    targetRevision: 29.19.0
+    chart: prometheus-node-exporter
+    targetRevision: 4.56.1
 
     helm:
-      releaseName: prometheus
+      releaseName: node-exporter
 
   destination:
     server: https://kubernetes.default.svc
