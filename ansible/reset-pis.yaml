@@ -1,35 +1,31 @@
 - name: HARD RESET k3s nodes
-  hosts: all
+  hosts: masters
   become: true
   gather_facts: false
 
   tasks:
-
-    - name: Stop k3s server if running
-      systemd:
-        name: k3s
+    - name: Stop k3s services
+      ansible.builtin.systemd:
+        name: "{{ item }}"
         state: stopped
-      ignore_errors: yes
-
-    - name: Stop k3s agent if running
-      systemd:
-        name: k3s-agent
-        state: stopped
-      ignore_errors: yes
+      loop:
+        - k3s
+        - k3s-agent
+      ignore_errors: true
 
     - name: Run k3s uninstall script (server)
       shell: |
         if [ -f /usr/local/bin/k3s-uninstall.sh ]; then
           /usr/local/bin/k3s-uninstall.sh
         fi
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: Run k3s agent uninstall script
       shell: |
         if [ -f /usr/local/bin/k3s-agent-uninstall.sh ]; then
           /usr/local/bin/k3s-agent-uninstall.sh
         fi
-      ignore_errors: yes
+      ignore_errors: true
 
     - name: Remove k3s directories
       file:
