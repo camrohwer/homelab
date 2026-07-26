@@ -8,6 +8,7 @@
       ansible.builtin.systemd:
         name: k3s
         state: stopped
+        enabled: false
       when: inventory_hostname in groups['masters']
       ignore_errors: true
 
@@ -15,27 +16,57 @@
       ansible.builtin.systemd:
         name: k3s-agent
         state: stopped
+        enabled: false
       when: inventory_hostname in groups['workers']
       ignore_errors: true
 
+    - name: Check k3s server uninstall script
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s-uninstall.sh
+      register: k3s_server_uninstall
+
+    - name: Check k3s agent uninstall script
+      ansible.builtin.stat:
+        path: /usr/local/bin/k3s-agent-uninstall.sh
+      register: k3s_agent_uninstall
+
     - name: Run k3s server uninstall script
-      ansible.builtin.shell: |
-        /usr/local/bin/k3s-uninstall.sh
+      ansible.builtin.command:
+        cmd: /usr/local/bin/k3s-uninstall.sh
       when:
         - inventory_hostname in groups['masters']
-        - ansible_facts.exists['/usr/local/bin/k3s-uninstall.sh'] | default(false)
+        - k3s_server_uninstall.stat.exists
       ignore_errors: true
 
     - name: Run k3s agent uninstall script
-      ansible.builtin.shell: |
-        /usr/local/bin/k3s-agent-uninstall.sh
+      ansible.builtin.command:
+        cmd: /usr/local/bin/k3s-agent-uninstall.sh
       when:
         - inventory_hostname in groups['workers']
-        - ansible_facts.exists['/usr/local/bin/k3s-agent-uninstall.sh'] | default(false)
+        - k3s_agent_uninstall.stat.exists
+      ignore_errors: true
+
+    - name: Kill leftover k3s processes
+      ansible.builtin.shell: |
+        pkill -9 k3s || true
+        pkill -9 containerd || true
+        pkill -9 kubelet || true
+      ignore_errors: true
+
+    - name: Remove remaining containers
+      ansible.builtin.shell: |
+        if command -v crictl >/dev/null 2>&1; then
+          crictl rm -f $(crictl ps -aq) || true
+        fi
+      ignore_errors: true
+
+    - name: Lazy unmount leftover k3s mounts
+      ansible.builtin.shell: |
+        mount | grep -E '/var/lib/kubelet|/run/k3s|/var/lib/rancher' | awk '{print $3}' | xargs -r umount -l
       ignore_errors: true
 
     - name: Remove k3s directories
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
@@ -48,25 +79,40 @@
         - /run/k3s
 
     - name: Remove leftover k3s binaries
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
         - /usr/local/bin/k3s
         - /usr/local/bin/k3s-agent
         - /usr/local/bin/kubectl
+        - /usr/local/bin/crictl
 
-    - name: Flush iptables (clean networking state)
-      shell: iptables -F
-      ignore_errors: yes
+    - name: Remove k3s systemd units
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/systemd/system/k3s.service
+        - /etc/systemd/system/k3s-agent.service
 
-    - name: Remove all containers (if containerd tools exist)
-      shell: |
-        if command -v crictl >/dev/null 2>&1; then
-          crictl rm -f $(crictl ps -aq) || true
-        fi
-      ignore_errors: yes
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Flush iptables
+      ansible.builtin.shell: |
+        iptables -F
+        iptables -t nat -F
+        iptables -t mangle -F
+      ignore_errors: true
+
+    - name: Remove CNI network interfaces
+      ansible.builtin.shell: |
+        ip link delete cni0 || true
+        ip link delete flannel.1 || true
+      ignore_errors: true
 
     - name: Reboot node
-      reboot:
+      ansible.builtin.reboot:
         reboot_timeout: 600
