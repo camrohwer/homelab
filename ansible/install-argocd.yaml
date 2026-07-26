@@ -35,4 +35,4 @@
     - name: Apply Argo root application
       kubernetes.core.k8s:
         state: present
-        src: "{{ playbook_dir }}/../gitops/bootstrap/homelab.yaml"
+        src: "{{ playbook_dir }}/../gitops/bootstrap/argocd-install.yaml"

@@ -1,22 +1,24 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
+
 metadata:
-  name: homelab
+  name: monitoring
   namespace: argocd
+
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+
 spec:
   project: default
 
   source:
-    repoURL: https://github.com/camrohwer/homelab.git
+    repoURL: git@github.com:camrohwer/homelab.git
     targetRevision: main
-    path: gitops/apps
-
-    directory:
-      recurse: true
+    path: gitops/monitoring
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: monitoring
 
   syncPolicy:
     automated:
