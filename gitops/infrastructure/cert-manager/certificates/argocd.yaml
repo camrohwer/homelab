@@ -8,9 +8,9 @@ metadata:
 spec:
   secretName: argocd-tls
 
-  dnsNames:
-    - argocd.homelab.local
-
   issuerRef:
     name: homelab-ca
     kind: ClusterIssuer
+
+  dnsNames:
+    - argocd.homelab.local
