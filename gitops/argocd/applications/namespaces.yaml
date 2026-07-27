@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: monitoring
+  name: namespaces
   namespace: argocd
 
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "-4"
 
 spec:
   project: default
@@ -14,13 +14,11 @@ spec:
   source:
     repoURL: https://github.com/camrohwer/homelab.git
     targetRevision: main
-    path: gitops/monitoring
-    directory:
-      recurse: true
+    path: gitops/infrastructure/namespaces
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: monitoring
+    namespace: default
 
   syncPolicy:
     automated:
