@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: networking
+  name: certificates
   namespace: argocd
 
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "-1"
 
 spec:
   project: default
@@ -14,18 +14,13 @@ spec:
   source:
     repoURL: https://github.com/camrohwer/homelab.git
     targetRevision: main
-    path: gitops/networking
-    directory:
-      recurse: true
+    path: gitops/infrastructure/cert-manager/certificates
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: networking
+    namespace: default
 
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-
-  syncOptions:
-    - CreateNamespace=true

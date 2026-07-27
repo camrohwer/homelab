@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: infrastructure
+  name: networking
   namespace: argocd
 
   annotations:
@@ -14,15 +14,17 @@ spec:
   source:
     repoURL: https://github.com/camrohwer/homelab.git
     targetRevision: main
-    path: gitops/infrastructure
+    path: gitops/networking
+
     directory:
       recurse: true
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: networking
 
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+

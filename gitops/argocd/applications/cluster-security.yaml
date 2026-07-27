@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: monitoring
+  name: cluster-security
   namespace: argocd
 
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-wave: "-2"
 
 spec:
   project: default
@@ -14,18 +14,13 @@ spec:
   source:
     repoURL: https://github.com/camrohwer/homelab.git
     targetRevision: main
-    path: gitops/monitoring
-    directory:
-      recurse: true
+    path: gitops/infrastructure/cert-manager/cluster-security
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: monitoring
+    namespace: cert-manager
 
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-
-    syncOptions:
-      - CreateNamespace=true

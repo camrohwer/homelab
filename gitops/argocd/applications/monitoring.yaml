@@ -2,30 +2,25 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 
 metadata:
-  name: cert-manager
+  name: monitoring
   namespace: argocd
 
   annotations:
-    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-wave: "2"
 
 spec:
   project: default
 
   source:
-    repoURL: https://charts.jetstack.io
-    chart: cert-manager
-    targetRevision: v1.21.0
-
-    helm:
-      releaseName: cert-manager
-
-      values: |
-        crds:
-          enabled: true
+    repoURL: https://github.com/camrohwer/homelab.git
+    targetRevision: main
+    path: gitops/monitoring
+    directory:
+      recurse: true
 
   destination:
     server: https://kubernetes.default.svc
-    namespace: cert-manager
+    namespace: monitoring
 
   syncPolicy:
     automated:
