@@ -4,3 +4,5 @@
 - import_playbook: configure-kubectl.yaml
 
 - import_playbook: install-argocd.yaml
+
+- import_playbook: configure-argocd.yaml

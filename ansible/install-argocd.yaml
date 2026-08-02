@@ -32,7 +32,3 @@
       retries: 30
       delay: 10
 
-    - name: Apply Argo root application
-      kubernetes.core.k8s:
-        state: present
-        src: "{{ playbook_dir }}/../gitops/bootstrap/argocd-install.yaml"

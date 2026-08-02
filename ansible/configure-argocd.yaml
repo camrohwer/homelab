@@ -1,0 +1,33 @@
+---
+- name: Configure Argo CD
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    sops_age_key: "{{ lookup('env', 'HOME') }}/.config/sops/age/keys.txt"
+
+  tasks:
+
+    - name: Create SOPS age secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: sops-age
+            namespace: argocd
+          type: Opaque
+          data:
+            keys.txt: "{{ lookup('file', sops_age_key) | b64encode }}"
+
+    - name: Apply SOPS plugin configuration
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/files/sops-plugin.yaml"
+
+    - name: Apply Argo root application
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ playbook_dir }}/../gitops/bootstrap/argocd-install.yaml"
