@@ -1,10 +1,13 @@
 # Secret Management
 
 ## Overview
+This repository uses **SOPS** with **age encryption** to manage Kubernetes secrets.
 
-This repository is using **SOPS** with **age encryption** to manage K8s secrets in GitOps.
+Encrypted secrets are stored in Git. During cluster deployment, Ansible running on the deployment controller decrypts the secrets using a private age key and applies them to Kubernetes.
 
-Secrets are stored in Git as encrypted YAML files. The actual secret values are never commited in plaintext.
+Applications deployed by ArgoCD consume the already-created Kubernetes Secrets.
+
+This repository intentionally uses Ansible for secret decryption instead of an ArgoCD secret decryption plugin. ArgoCD is responsible for application deployment, while Ansible is responsible for securely injecting secrets into the cluster during provisioning.
 
 The workflow is:
 
@@ -18,18 +21,35 @@ Encrypted Secret YAML
     |
     | Git commit
     |
-    v ArgoCD
+    v
+Ansible deployment controller
     |
-    | Decrypts secret
+    | Uses private age key
     |
+    | Decrypts with SOPS
+    |
+    | Applies Secret manifest
     v 
+Kubernetes API Server
+    |
+    v
 Kubernetes Secret
+    |
+    v
+ArgoCD applications consume Secret
     |
     v
 Application
 ```
 
-The repository contains encrypted secrets and the public encryption key. The private age key is kept outside the repository.
+The repository contains:
+- Encrypted secret manifests
+- The SOPS configuration file
+- The public age encryption key
+
+The private age key is only stored on the Ansible deployment controller.
+
+The private key is required to decrypt secrets and must never be committed.
 
 ---
 
@@ -48,11 +68,26 @@ The repository can be public without exposing credetials, which is helpful for e
 
 ---
 
+## Secret Deployment Architecture
+
+Secrets are intentionally applied before application deployment.
+
+The deployment order is:
+
+1. Bootstrap K3s cluster
+2. Install ArgoCD
+3. Create required namespaces
+4. Decrypt and apply SOPS secrets with Ansible
+5. Deploy applications through ArgoCD
+6. Applications consume K8s Secrets
+
+---
+
 ## Encryption Configuration
 
 The `.sops.yaml` file in the project root defines encryption rules.
 
-```
+```yaml
 creation_rules:
   - path_regex: gitops/secrets/.*\.yaml
     encrypted_regex: '^(data|stringData)$'
@@ -76,6 +111,30 @@ The key was generated using: `age-keygen -o ~/.config/sops/age/keys.txt`
 
 ---
 
+## Applying Secrets During Deployment
+
+Secrets are automatically decrypted and applied by Ansible.
+
+The playbook `apply-secrets.yaml` does the following:
+
+1. Finds encrypted secret files in `gitops/secrets/*.enc.yaml`
+2. Decrypts them using SOPS where `SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt`
+3. Applies the resulting K8s Secret objects.
+
+```
+gtiops/secrets/grafana-admin.enc.yaml
+    |
+    v
+sops decrypt
+    |
+    v
+Secret/grafana-admin
+    |
+    v
+Grafana Helm deployment
+```
+The plaintext secret only exists temporarily during deployment.
+
 ## Creating a new secret
 
 ### 1. Create the Kubernetes Secret manifest
@@ -86,7 +145,7 @@ Example:
 
 Before encryption:
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 
@@ -107,11 +166,16 @@ stringData:
 
 Run:
 
-`sops encrypt -i gitops/secrets/example.yaml`
+```bash
+sops encrypt -i gitops/secrets/example.yaml
+```
+```bash
+mv gitops/secrets/example.yaml gitops/secrets/example.enc.yaml
+```
 
 The file is now encrypted:
 
-```
+```yaml
 stringData:
   username: ENC[AES256_GCM,...]
   password: ENC[AES256_GCM,...]
@@ -119,14 +183,38 @@ stringData:
 
 The plaintext values are no longer stored.
 
---- ### 3. Verify the secret encryption
+--- 
+
+### 3. Verify the secret encryption
 
 Inspect the file to verify encryption and test decryption with:
 
-`sops decrypt gitops/secrets/example.yaml`
+```bash
+sops decrypt gitops/secrets/example.enc.yaml
+```
 
+---
 
+## Updating an Existing Secret
 
+To modify an existing secret, use SOPS directly:
 
+```bash
+sops gitops/secrets/example.enc.yaml
+```
+
+SOPS will:
+1. Decrypt the file into memory.
+2. Open it in vim
+3. Re-encrypt it automatically when you save and exit.
+
+---
+
+## Requirements
+
+The follow must be installed on the deployment controller:
+
+- `sops`
+- `age`
 
 
