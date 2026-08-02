@@ -1,1 +1,4 @@
 node-token
+keys.txt
+*.agekey
+.age/
