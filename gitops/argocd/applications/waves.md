@@ -11,7 +11,6 @@ cluster-security.yaml
 Wave 2
 ------
 certificates.yaml
-secrets.yaml
 
 Wave 3
 ------
