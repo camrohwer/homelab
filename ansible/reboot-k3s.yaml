@@ -1,0 +1,15 @@
+---
+- name: Reboot k3s cluster
+  hosts: all
+  become: true
+  serial: 1
+
+  tasks:
+    - name: Reboot node
+      ansible.builtin.reboot:
+        reboot_timeout: 600
+        msg: "Reboot initiated by Ansible"
+
+    - name: Report node is back online
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} is back online"
